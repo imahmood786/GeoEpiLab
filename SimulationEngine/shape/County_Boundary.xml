@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+    <idinfo>
+        <citation>
+            <citeinfo>
+                <title>County Boundary</title>
+            </citeinfo>
+        </citation>
+        <descript>
+            <abstract>This feature class consists of a single polygon defining the outline of Hillsborough County. Along land boundaries with other counties it matches the outline of parcels. The coastline boundaries were verified and updated utilizing aerial photography and other resources.</abstract>
+            <purpose>This Cntyphysical dataset shows the Hillsborough County boundary as they are designated by natural features in combination and legal description. This feature...</purpose>
+        </descript>
+        <keywords>
+            <theme>
+                <themekt>None</themekt>
+                <themekey>BOUNDARY</themekey>
+                <themekey>HILLSBOROUGH COUNTY</themekey>
+                <themekey>PHYSICAL</themekey>
+                <themekey>ArcGIS</themekey>
+                <themekey>Service Definition</themekey>
+                <themekey>.sd</themekey>
+                <themekey>Hillsborough County</themekey>
+            </theme>
+        </keywords>
+        <accconst>None</accconst>
+        <useconst>This work is licensed under a Creative Commons Attribution 4.0 International License.</useconst>
+        <datacred>Hillsborough County, Public Works Department, Geomatics</datacred>
+    </idinfo>
+    <metainfo>
+        <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+        <metstdv>FGDC-STD-001-1998</metstdv>
+        <mettc>local time</mettc>
+    </metainfo>
+</metadata>
