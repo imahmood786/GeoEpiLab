@@ -26,21 +26,28 @@ from shapely.geometry import Polygon, Point
 
 path = os.getcwd()
 # Get County boundary in Geojson
-# boundary = gpd.read_file(os.path.join(path, 'VE', 'GIS','County_Boundary.geojson'))
-boundary = gpd.read_file(os.path.join(path, 'VE', 'GIS','Zip_Codes.geojson'))
-poly = boundary[(boundary['Zip_Code'] == '33612')].iloc[0].geometry
-
+boundary = gpd.read_file(os.path.join(path, 'VE', 'GIS','County_Boundary.geojson'))
+# boundary = gpd.read_file(os.path.join(path, 'VE', 'GIS','Zip_Codes.geojson'))
+# poly = boundary[(boundary['Zip_Code'] == '33612')].iloc[0].geometry
+poly = boundary.iloc[0].geometry
 
 # osm = pyrosm.OSM('./OSM Parser/Eixample.pbf')
 osm = pyrosm.OSM(os.path.join(path, 'VE', 'GIS','florida-latest.osm.pbf'), bounding_box=poly)
 buildings = osm.get_buildings()
 
 buildings_yes = buildings.loc[(buildings['building'] == 'yes')]
-print('Building yes = ', buildings_yes.size)
 # This code is to mark yes locations with random sampling
-house_rand = buildings.sample(frac = 0.50)
-work_rand = buildings.sample(frac = 0.20)
-community_rand = buildings.sample(frac = 0.30)
+house_rand = buildings_yes.sample(frac = 0.75)
+buildings_yes = buildings_yes.drop(house_rand.index)
+
+#remaining 70% (out of 25%) to work
+work_rand = buildings_yes.sample(frac = 0.70)
+buildings_yes = buildings_yes.drop(work_rand.index)
+
+#remaining 30% to community
+community_rand = buildings_yes #remaining rows
+buildings_yes = buildings_yes.drop(community_rand.index)
+
 house_rand['type'] = 'house'
 work_rand['type'] = 'workplace'
 community_rand['type'] = 'community'
@@ -84,17 +91,18 @@ workplaces['type'] = 'workplace'
 communityplaces['type'] = 'community'
 schools['type'] = 'school'
 
-places = [houses, house_rand, workplaces, work_rand, communityplaces,community_rand, schools]
+places = [houses, workplaces, communityplaces, schools, house_rand,  work_rand, community_rand]
 
 LG = pd.concat(places)
-
+print(len(LG))
 LG['x'] = LG['geometry'].centroid.x
 LG['y'] = LG['geometry'].centroid.y
 
+LG2 = LG.loc[(LG['type'] == 'house')]
 
 # buildings['x'] = buildings['geometry'].centroid.x
 # buildings['y'] = buildings['geometry'].centroid.y
-fig = px.scatter_mapbox(LG, lat="y", lon="x",
+fig = px.scatter_mapbox(LG2, lat="y", lon="x",
                         color_discrete_sequence=px.colors.qualitative.G10,
                         color="type",
                         hover_name='id',
@@ -106,5 +114,9 @@ py.offline.plot(fig, filename= "Pointcloud.html")
 fig.show()
 LG.drop_duplicates(subset=['id'],keep = False, inplace = True)
 LG.duplicated(subset='id', keep='first').sum()
-LG.to_file(os.path.join(path, 'VE', '../SimulationEngine/location_graph.geojson'), driver="GeoJSON")
-
+LG.to_file(os.path.join(path, 'VE', '../SimulationEngine/GIS/hillsborough_LG.geojson'), driver="GeoJSON")
+LG.to_csv(os.path.join(path, 'VE', '../SimulationEngine/GIS/hillsborough_LG.csv'))
+# print(len(LG[LG['type']=='house']))
+# print(len(LG[LG['type']=='workplace']))
+# print(len(LG[LG['type']=='community']))
+# print(len(LG[LG['type']=='school']))

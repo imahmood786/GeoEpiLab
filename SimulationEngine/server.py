@@ -61,8 +61,8 @@ infected_chart = ChartModule(
 )
 server = ModularServer(
     InfectedModel,
-    # [map_element, infected_text, infected_chart],
-    [map_element, infected_text],
+    [map_element, infected_text, infected_chart],
+    # [map_element, infected_text],
     "GeoEpiLab",
     model_params,
 )
