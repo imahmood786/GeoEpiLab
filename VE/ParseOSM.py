@@ -27,11 +27,10 @@ from shapely.geometry import Polygon, Point
 path = os.getcwd()
 # Get County boundary in Geojson
 boundary = gpd.read_file(os.path.join(path, 'VE', 'GIS','County_Boundary.geojson'))
-# boundary = gpd.read_file(os.path.join(path, 'VE', 'GIS','Zip_Codes.geojson'))
+# boundary = gpd.read_file(os.path.join(path, 'VE', 'GIS','Zip_Codes2.geojson'))
 # poly = boundary[(boundary['Zip_Code'] == '33612')].iloc[0].geometry
 poly = boundary.iloc[0].geometry
 
-# osm = pyrosm.OSM('./OSM Parser/Eixample.pbf')
 osm = pyrosm.OSM(os.path.join(path, 'VE', 'GIS','florida-latest.osm.pbf'), bounding_box=poly)
 buildings = osm.get_buildings()
 
@@ -95,28 +94,30 @@ places = [houses, workplaces, communityplaces, schools, house_rand,  work_rand, 
 
 LG = pd.concat(places)
 print(len(LG))
-LG['x'] = LG['geometry'].centroid.x
-LG['y'] = LG['geometry'].centroid.y
+# LG['x'] = LG['geometry'].centroid.x
+# LG['y'] = LG['geometry'].centroid.y
 
-LG2 = LG.loc[(LG['type'] == 'house')]
 
 # buildings['x'] = buildings['geometry'].centroid.x
 # buildings['y'] = buildings['geometry'].centroid.y
-fig = px.scatter_mapbox(LG2, lat="y", lon="x",
-                        color_discrete_sequence=px.colors.qualitative.G10,
-                        color="type",
-                        hover_name='id',
-                        zoom=10)
-fig.update_layout(mapbox_style="open-street-map", title= "Hillsborough" + ' Location Graph', width=1000, height=800, legend=dict(x=0, y=0, orientation ="h"))
-# fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-py.offline.plot(fig, filename= "Pointcloud.html")
+# fig = px.scatter_mapbox(LG2, lat="y", lon="x",
+#                         color_discrete_sequence=px.colors.qualitative.G10,
+#                         color="type",
+#                         hover_name='id',
+#                         zoom=10)
+# fig.update_layout(mapbox_style="open-street-map", title= "Hillsborough" + ' Location Graph', width=1000, height=800, legend=dict(x=0, y=0, orientation ="h"))
+# # fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+# py.offline.plot(fig, filename= "Pointcloud.html")
 # fig.write_image(os.getcwd() +"\\" + borough + ".png",  width=1024, height=768, scale=1)
-fig.show()
+# fig.show()
+
 LG.drop_duplicates(subset=['id'],keep = False, inplace = True)
 LG.duplicated(subset='id', keep='first').sum()
-LG.to_file(os.path.join(path, 'VE', '../SimulationEngine/GIS/hillsborough_LG.geojson'), driver="GeoJSON")
-LG.to_csv(os.path.join(path, 'VE', '../SimulationEngine/GIS/hillsborough_LG.csv'))
-# print(len(LG[LG['type']=='house']))
-# print(len(LG[LG['type']=='workplace']))
-# print(len(LG[LG['type']=='community']))
-# print(len(LG[LG['type']=='school']))
+print(LG.columns)
+# LG = LG[[]]
+LG.to_file(os.path.join(path, 'VE', '../SimulationEngine/GIS/hillsborough_LG_33612.geojson'), driver="GeoJSON")
+# LG.to_csv(os.path.join(path, 'VE', '../SimulationEngine/GIS/hillsborough_LG.csv'))
+print(len(LG[LG['type']=='house']))
+print(len(LG[LG['type']=='workplace']))
+print(len(LG[LG['type']=='community']))
+print(len(LG[LG['type']=='school']))

@@ -38,14 +38,15 @@ def infected_draw(agent):
     portrayal = dict()
     if isinstance(agent, PersonAgent):
         portrayal["radius"] = "1"
-    if agent.atype in ["hotspot", "infected"]:
+    if agent.state in ["infected"]:
         portrayal["color"] = "Red"
-    elif agent.atype in ["safe", "susceptible"]:
+    elif agent.state in ["susceptible"]:
         portrayal["color"] = "Blue"
-    elif agent.atype in ["recovered"]:
+    elif agent.state in ["recovered"]:
         portrayal["color"] = "Green"
-    elif agent.atype in ["dead"]:
+    elif agent.state in ["dead"]:
         portrayal["color"] = "Black"
+
     return portrayal
 
 
@@ -66,4 +67,5 @@ server = ModularServer(
     "GeoEpiLab",
     model_params,
 )
+
 server.launch()

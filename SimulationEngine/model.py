@@ -6,7 +6,9 @@ from mesa_geo import GeoSpace
 from shapely.geometry import Point
 import os
 import geopandas as gpd
+import pandas as pd
 import numpy as np
+import json
 
 class PersonAgent(GeoAgent):
     """Person Agent."""
@@ -15,12 +17,7 @@ class PersonAgent(GeoAgent):
         self,
         unique_id,
         model,
-        shape,
-        agent_type="susceptible",
-        mobility_range=300,
-        recovery_rate=0.2,
-        death_risk=0.05,
-        init_infected=0.2,
+        shape
     ):
         """
         Create a new person agent.
@@ -32,54 +29,101 @@ class PersonAgent(GeoAgent):
         """
         super().__init__(unique_id, model, shape)
         # Agent parameters
-        self.atype = agent_type
-        self.mobility_range = mobility_range
-        self.recovery_rate = recovery_rate
-        self.death_risk = death_risk
+        self.state = "susceptible"
+        self.mobility_range = 300
+        self.recovery_rate = 0.2
+        self.death_risk = 0.05
+        self.init_infected = 0.2
+        self.age=0,
+        self.gender='',
+        self.race='',
+        self.hid=0,
+        self.home = None,
 
         # Random choose if infected
-        if self.random.random() < init_infected:
-            self.atype = "infected"
+        if self.random.random() < self.init_infected:
+            self.state = "infected"
             self.model.counts["infected"] += 1  # Adjust initial counts
             self.model.counts["susceptible"] -= 1
 
+
+    def print(self):
+        print(self.unique_id, self.age, self.gender, self.race, self.hid, self.shape.x, self.shape.y)
+
+    # def move_point(self, dx, dy):
+    #     """
+    #     Move a point by creating a new one
+    #     :param dx:  Distance to move in x-axis
+    #     :param dy:  Distance to move in y-axis
+    #     """
+    #     return Point(self.shape.x + dx, self.shape.y + dy)
+
     def move_point(self, dx, dy):
-        """
-        Move a point by creating a new one
-        :param dx:  Distance to move in x-axis
-        :param dy:  Distance to move in y-axis
-        """
         return Point(self.shape.x + dx, self.shape.y + dy)
 
     def step(self):
         """Advance one step."""
         # If susceptible, check if exposed
-        if self.atype == "susceptible":
+        if self.state == "susceptible":
             neighbors = self.model.grid.get_neighbors_within_distance(
                 self, self.model.exposure_distance
             )
             for neighbor in neighbors:
                 if (
-                    neighbor.atype == "infected"
+                    neighbor.state == "infected"
                     and self.random.random() < self.model.infection_risk
                 ):
-                    self.atype = "infected"
+                    self.state = "infected"
                     break
 
         # If infected, check if it recovers or if it dies
-        elif self.atype == "infected":
+        elif self.state == "infected":
             if self.random.random() < self.recovery_rate:
-                self.atype = "recovered"
+                self.state = "recovered"
             elif self.random.random() < self.death_risk:
-                self.atype = "dead"
+                self.state = "dead"
 
         # If not dead, move
-        if self.atype != "dead":
-            move_x = self.random.randint(-self.mobility_range, self.mobility_range)
-            move_y = self.random.randint(-self.mobility_range, self.mobility_range)
-            self.shape = self.move_point(move_x, move_y)  # Reassign shape
+        if self.state != "dead":
+            move_to = self.goto_location()
+            # self.home = self.shape
+            self.shape = move_to  # Reassign shape
+            
 
-        self.model.counts[self.atype] += 1  # Count agent type
+
+        self.model.counts[self.state] += 1  # Count agent type
+
+    def goto_location(self):
+        category = self.get_category(self.age)
+        if category == 'child':
+            location = self.model.school_locations.sample(n=1)
+        elif category == 'teen':
+            location = self.model.school_locations.sample(n=1)
+        elif category == 'adult':
+            location = self.model.work_locations.sample(n=1)
+        elif category == 'senior':
+            location = self.model.community_locations.sample(n=1)
+        else:
+            location = self.model.locations.sample(n=1)
+
+        if not location:
+            return None
+        else:
+            return Point(float(location['geometry'].centroid.x), float(location['geometry'].centroid.y))
+
+    def get_category(self, age):
+        category = ""
+        if age< 3:
+            cateogry = 'infant'
+        elif age >= 3 and age <= 12:
+            category = 'child'
+        elif age >= 13 and age < 19:
+            category = 'teen'
+        elif age >= 18 and age < 60:
+            category = 'adult'
+        else:
+            category = 'senior'
+        return category
 
     def __repr__(self):
         return "Person " + str(self.unique_id)
@@ -91,11 +135,11 @@ class InfectedModel(Model):
     # Geographical parameters for desired map
     MAP_COORDS = [27.9304263, -82.307282]  # Tampa
 
-    geojson_regions = "Zip_Codes.geojson"
-    unique_regions = "Zip_Code"
-
-    geojson_agents = "location_graph33612.geojson"
-    unique_agents = "id"
+    # geojson_regions = "Zip_Codes.geojson"
+    # unique_regions = "Zip_Code"
+    #
+    # geojson_agents = "location_graph33612.geojson"
+    # unique_agents = "id"
 
 
 
@@ -112,6 +156,26 @@ class InfectedModel(Model):
         self.steps = 0
         self.counts = None
         self.reset_counts()
+
+        #Location graph
+        LG = gpd.read_file(os.path.join(os.path.dirname(os.getcwd()), 'VE', 'GIS','location_graph33612.geojson'))
+        LG = LG.to_crs("EPSG:3857")
+
+        # load people
+        pop = pd.read_csv(os.path.join(os.path.dirname(os.getcwd()), 'SynPop', 'hillsborough_pop33612.csv'))
+        # Load households
+        households = pd.read_csv(os.path.join(os.path.dirname(os.getcwd()), 'SynPop', 'hillsborough_hh33612.csv'))
+
+        house_locations = LG[LG['type']=='house']
+        house_locations = house_locations.head(n=len(households))
+        self.house_locations = house_locations
+        print('houses', len(house_locations))
+
+        self.locations = LG
+        self.school_locations = LG[LG['type'] == 'schools']
+        self.work_locations = LG[LG['type'] == 'workplace']
+        self.community_locations = LG[LG['type'] == 'community']
+
 
         # SIR model parameters
         self.pop_size = pop_size
@@ -131,26 +195,36 @@ class InfectedModel(Model):
 
         # Generate PersonAgent population
         AC = AgentCreator(
-            PersonAgent, {"model": self, "init_infected": init_infected}
+            PersonAgent, {"model": self}
         )
-        LG = gpd.read_file(os.path.join(os.getcwd(), 'GIS/location_graph33612.geojson'))
-        LG['geometry'] = LG['geometry'].to_crs(epsg=3857)
-        Houses = LG[LG['type']=='house']
-        print('No. of houses: ', len(Houses))
-        # Generate random location, add agent to grid and scheduler
-        for index, row in Houses.iterrows():
-            point = row['geometry'].centroid
-            #Setup household code here
-            this_person = AC.create_agent(
-                Point(point.x, point.y), "P" + str(index)
-            )
+
+
+
+        houses = pd.concat([house_locations, households], axis=1)
+
+        # Generate households, add agent to to each household
+        for index, hrow in houses.iterrows():
+            point = hrow['geometry'].centroid
+            occupants = hrow['occupants']
+            occupants = occupants.replace('[', '').replace(']', '')
+            occupants = occupants.strip()
+            occupants = occupants.replace(' ','')
+            occupants = occupants.split(',')
+            occupants = np.array(occupants, dtype=np.int)
+            persons = pop.loc[pop['uid'].isin(occupants)]
+            #     #Setup household code here
+            for index, prow in persons.iterrows():
+                this_person = AC.create_agent(Point(point.x, point.y), "P" + str(prow['uid']))
+                this_person.age = prow['age']
+                this_person.gender = prow['gender']
+                this_person.race = prow['race']
+                this_person.hid = hrow['hid']
+                this_person.home = jsonStr = json.dumps(Point(point.x, point.y).__dict__)
+                # this_person.home = Point(float(point.x), float(point.y))
+                # this_person.print()
+
             self.grid.add_agents(this_person)
             self.schedule.add(this_person)
-
-        # Add the neighbourhood agents to schedule AFTER person agents,
-        # to allow them to update their color by using BaseScheduler
-        # for agent in neighbourhood_agents:
-        #     self.schedule.add(agent)
 
         self.datacollector.collect(self)
 
@@ -160,8 +234,7 @@ class InfectedModel(Model):
             "infected": 0,
             "recovered": 0,
             "dead": 0,
-            "safe": 0,
-            "hotspot": 0,
+            "moving": 0,
         }
 
     def step(self):

@@ -4,7 +4,8 @@ import plotly.express as px
 import  plotly as py
 import os
 
-df = pd.read_csv('COVID_Cases2021-07-16 public.csv')
+path = os.path.join(os.path.dirname(os.getcwd()), 'GeoEpiLab', 'DiseaseModel', 'COVID_Cases2021-07-16 public.csv')
+df = pd.read_csv(path)
 df =  df.dropna(subset=['Date'])
 # count = 0
 # for index, row in df.iterrows():

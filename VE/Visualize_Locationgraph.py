@@ -3,15 +3,20 @@ import os
 import geopandas as gpd
 import plotly.express as px
 import  plotly as py
+import os
 
-LG = gpd.read_file(os.path.join(os.getcwd(), 'SimulationEngine', 'GIS', 'hillsborough_LG.geojson'))
+path = os.path.join(os.path.dirname(os.getcwd()), 'GeoEpiLab', 'VE', 'GIS','hillsborough_LG.geojson')
+
+
+LG = gpd.read_file(path)
 
 fig = px.scatter_mapbox(LG, lat="y", lon="x",
                         color_discrete_sequence=px.colors.qualitative.G10,
                         color="type",
                         hover_name='id',
                         zoom=10)
-fig.update_layout(mapbox_style="open-street-map", title= "Hillsborough" + ' Location Graph', width=1000, height=800, legend=dict(x=0, y=0, orientation ="h"))
+fig.update_layout(mapbox_style="open-street-map", title= "Hillsborough" + ' Location Graph', width=1000, height=800)
 fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 py.offline.plot(fig, filename= "Pointcloud.html")
 fig.show()
+# print(len(LG[LG['type']=='house']))
